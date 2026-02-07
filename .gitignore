@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Environment variables
+.env
+
+# Data (never commit)
+data/raw/
+data/interim/
+data/processed/
+
+# Artifacts
+artifacts/models/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS
+.DS_Store

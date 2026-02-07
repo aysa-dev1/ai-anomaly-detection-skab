@@ -1,0 +1,1 @@
+# Initialization of project Detection of anomalies using ai on the dataset SKAB
