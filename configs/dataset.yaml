@@ -1,0 +1,13 @@
+dataset:
+  name: skab
+  raw_dir: data/raw/skab
+  processed_dir: data/processed/skab
+
+  # TBD
+  source_url: ""
+
+loading:
+  # file skeleton inside raw_dir
+  file_glob: "**/*.csv"
+  timestamp_column_candidates: ["timestamp", "time", "datetime", "date"]
+  label_column_candidates: ["anomaly", "label", "target", "is_anomaly"]
