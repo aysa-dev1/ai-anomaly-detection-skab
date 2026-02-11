@@ -47,4 +47,6 @@ def clone_or_pull_repo(repo_url: str, target_dir: Path) -> DownloadResult:
         # pulling
         _run(["git", "pull", "--ff-only"], cwd=target_dir)
         action = "updated"
+
+        
     return DownloadResult(repo_url=repo_url, target_dir=target_dir, action=action)
