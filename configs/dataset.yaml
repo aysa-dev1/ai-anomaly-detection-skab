@@ -1,13 +1,14 @@
 dataset:
   name: skab
-  raw_dir: data/raw/skab
+  repo_dir: data/raw/skab_repo
   processed_dir: data/processed/skab
 
-  # TBD
-  source_url: ""
+  # SKAB dataset from the GitHub Repo waico/SKAB
+  source_url: "https://github.com/waico/SKAB.git"
 
 loading:
   # file skeleton inside raw_dir
   file_glob: "**/*.csv"
+  data_subdir: "" # optional; if empty, function will auto-disvocer
   timestamp_column_candidates: ["timestamp", "time", "datetime", "date"]
   label_column_candidates: ["anomaly", "label", "target", "is_anomaly"]
