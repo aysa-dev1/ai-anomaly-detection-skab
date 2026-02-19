@@ -95,3 +95,15 @@ def train_baseline_on_dataset(
         joblib.dump(model, model_path)
 
     return metrics
+
+if __name__ == "__main__":
+    metrics = train_baseline_on_dataset(
+        processed_dir=Path("data/processed/skab"),
+        artifacts_models_dir=Path("artifacts/models"),
+        artifacts_metrics_dir=Path("artifacts/metrics"),
+        timestamp_col="timestamp",
+        label_col="anomaly",
+        train_ratio=0.7,
+    )
+    print("Aggregate metrics:", metrics["aggregate"])
+

@@ -20,7 +20,9 @@ def iter_csv_files(raw_dir: Path, file_glob: str) -> Iterable[Path]:
 
 
 def load_csv(path: Path) -> pd.DataFrame:
-    return pd.read_csv(path)
+    # SKAB files are semicolon-delimited; sep=None keeps this robust
+    # if other datasets use commas/tabs.
+    return pd.read_csv(path, sep=None, engine="python")
 
 
 def load_dataset(raw_dir: Path, file_glob: str = "**/*.csv") -> list[LoadedFile]:
