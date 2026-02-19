@@ -25,17 +25,35 @@ def prepare(config_path: Path | None = None) -> PrepareStats:
     config_path = config_path or root / "configs" / "dataset.yaml"
 
     cfg = load_dataset_config(config_path)
+    if "dataset" not in cfg or "loading" not in cfg:
+        raise ValueError(f"Config missing required sections 'dataset' and 'loading': {config_path}")
+
+    dataset_cfg = cfg["dataset"]
+    loading_cfg = cfg["loading"]
+
+    repo_dir = root / Path(dataset_cfg["repo_dir"])
+    processed_dir = root / Path(dataset_cfg["processed_dir"])
+    file_glob = loading_cfg.get("file_glob", "**/*.csv")
+    data_subdir = loading_cfg.get("data_subdir", "")
+    timestamp_candidates = loading_cfg.get(
+        "timestamp_column_candidates", ["timestamp", "time", "datetime", "date"]
+    )
+    label_candidates = loading_cfg.get(
+        "label_column_candidates", ["anomaly", "label", "target", "is_anomaly"]
+    )
+    canonical_timestamp = timestamp_candidates[0]
+    canonical_label = label_candidates[0]
 
     acquired = acquire_dataset(
-        repo_url=cfg.source_url,
-        repo_dir=cfg.repo_dir,
-        file_glob=cfg.file_glob,
-        data_subdir=cfg.data_subdir,
+        repo_url=dataset_cfg["source_url"],
+        repo_dir=repo_dir,
+        file_glob=file_glob,
+        data_subdir=data_subdir,
     )
 
-    loaded = load_dataset(acquired.location.raw_data_dir, cfg.file_glob)
+    loaded = load_dataset(acquired.location.raw_data_dir, file_glob)
 
-    cfg.processed_dir.mkdir(parents=True, exist_ok=True)
+    processed_dir.mkdir(parents=True, exist_ok=True)
 
     total_rows = 0
     total_anomalies = 0
@@ -43,16 +61,27 @@ def prepare(config_path: Path | None = None) -> PrepareStats:
     for item in loaded:
         df = item.df.copy()
 
-        ts_col = detect_timestamp_column(df, cfg.timestamp_column_candidates)
-        label_col = detect_label_column(df, cfg.label_column_candidates)
+        ts_col = detect_timestamp_column(df, timestamp_candidates)
+        try:
+            label_col = detect_label_column(df, label_candidates)
+        except ValueError:
+            # SKAB anomaly-free split has no explicit label; treat as all normal.
+            df[canonical_label] = 0
+            label_col = canonical_label
 
         df[ts_col] = pd.to_datetime(df[ts_col])
+        if ts_col != canonical_timestamp:
+            df = df.rename(columns={ts_col: canonical_timestamp})
+            ts_col = canonical_timestamp
+        if label_col != canonical_label:
+            df = df.rename(columns={label_col: canonical_label})
+            label_col = canonical_label
         df = df.sort_values(ts_col).reset_index(drop=True)
 
         total_rows += len(df)
         total_anomalies += int(df[label_col].sum())
 
-        out_path = cfg.processed_dir / item.path.name
+        out_path = processed_dir / item.path.name
         df.to_csv(out_path, index=False)
 
     stats = PrepareStats(
