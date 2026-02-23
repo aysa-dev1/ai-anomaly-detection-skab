@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 import joblib
 import pandas as pd
@@ -10,6 +12,10 @@ from anomaly_detection.data.split import time_series_split
 from anomaly_detection.features.build_features import build_feature_matrix, select_feature_columns
 from anomaly_detection.models.baseline import IsolationForestConfig, build_isolation_forest
 from anomaly_detection.models.evaluate import compute_metrics, isolation_forest_pred_to_anomaly
+from anomaly_detection.utils.config import load_train_config
+from anomaly_detection.utils.logging import get_logger
+from anomaly_detection.utils.paths import find_repo_root
+from anomaly_detection.utils.seeds import set_global_seed
 
 
 def load_prepared_csvs(processed_dir: Path) -> list[Path]:
@@ -96,14 +102,65 @@ def train_baseline_on_dataset(
 
     return metrics
 
-if __name__ == "__main__":
-    metrics = train_baseline_on_dataset(
-        processed_dir=Path("data/processed/skab"),
-        artifacts_models_dir=Path("artifacts/models"),
-        artifacts_metrics_dir=Path("artifacts/metrics"),
-        timestamp_col="timestamp",
-        label_col="anomaly",
-        train_ratio=0.7,
-    )
-    print("Aggregate metrics:", metrics["aggregate"])
 
+def _resolve_path(root: Path, value: str) -> Path:
+    p = Path(value)
+    return p if p.is_absolute() else root / p
+
+
+def train_from_config(config_path: str | Path) -> dict[str, Any]:
+    root = find_repo_root()
+    cfg = load_train_config(config_path)
+
+    training_cfg = cfg["training"]
+    model_cfg = cfg["model"]
+    logging_cfg = cfg.get("logging", {})
+
+    logger = get_logger(__name__, level=logging_cfg.get("level", "INFO"))
+
+    seed = int(training_cfg.get("seed", 42))
+    set_global_seed(seed)
+    logger.info("Global seed set to %s", seed)
+
+    processed_dir = _resolve_path(root, training_cfg["processed_dir"])
+    artifacts_models_dir = _resolve_path(root, training_cfg["artifacts_models_dir"])
+    artifacts_metrics_dir = _resolve_path(root, training_cfg["artifacts_metrics_dir"])
+
+    model_name = model_cfg.get("name", "isolation_forest")
+    if model_name != "isolation_forest":
+        raise ValueError(f"Unsupported model name: {model_name}")
+
+    model = IsolationForestConfig(
+        n_estimators=int(model_cfg.get("n_estimators", 200)),
+        contamination=model_cfg.get("contamination", "auto"),
+        random_state=int(model_cfg.get("random_state", seed)),
+    )
+
+    metrics = train_baseline_on_dataset(
+        processed_dir=processed_dir,
+        artifacts_models_dir=artifacts_models_dir,
+        artifacts_metrics_dir=artifacts_metrics_dir,
+        timestamp_col=training_cfg["timestamp_col"],
+        label_col=training_cfg["label_col"],
+        train_ratio=float(training_cfg.get("train_ratio", 0.7)),
+        cfg=model,
+    )
+
+    logger.info("Training completed. Aggregate metrics: %s", metrics["aggregate"])
+    return metrics
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Train anomaly detection baseline model.")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/train.yaml",
+        help="Path to training config YAML.",
+    )
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = _parse_args()
+    train_from_config(args.config)
