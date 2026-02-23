@@ -6,7 +6,8 @@ from typing import Any
 import yaml
 
 
-def load_yaml(path: Path) -> dict[str, Any]:
+def load_config(path: str | Path) -> dict[str, Any]:
+    path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {path}")
 
@@ -20,8 +21,15 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 
 def load_dataset_config(config_path: str | Path) -> dict[str, Any]:
-    """
-    Load dataset configuration from a given path.
-    Expected usage: load_dataset_config(config_path)
-    """
-    return load_yaml(Path(config_path))
+    return load_config(config_path)
+
+
+def load_train_config(config_path: str | Path) -> dict[str, Any]:
+    cfg = load_config(config_path)
+    required_sections = ["training", "model"]
+    missing = [s for s in required_sections if s not in cfg]
+    if missing:
+        raise ValueError(
+            f"Training config missing required section(s) {missing}: {Path(config_path)}"
+        )
+    return cfg

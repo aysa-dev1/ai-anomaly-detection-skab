@@ -1,0 +1,17 @@
+training:
+  processed_dir: data/processed/skab
+  artifacts_models_dir: artifacts/models
+  artifacts_metrics_dir: artifacts/metrics
+  timestamp_col: timestamp
+  label_col: anomaly
+  train_ratio: 0.7
+  seed: 42
+
+model:
+  name: isolation_forest
+  n_estimators: 200
+  contamination: auto
+  random_state: 42
+
+logging:
+  level: INFO
