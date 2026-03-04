@@ -10,10 +10,12 @@ def select_feature_columns(df: pd.DataFrame, timestamp_col: str, label_col: str)
     return feature_cols
 
 
-def build_feature_matrix(df: pd.DataFrame, feature_cols: list[str]) -> pd.DataFrame:
+def build_feature_matrix(df: pd.DataFrame, feature_cols: list[str], expected_features: list[str] | None = None,) -> pd.DataFrame:
     """only numeric feature columns needed"""
     x = df[feature_cols].copy()
     x = x.select_dtypes(include=["number"])
+    if expected_features is not None:
+        x = x.reindex(columns=expected_features, fill_value=0)
     if x.shape[1] == 0:
         raise ValueError("No numeric feature columns found after selection")
     return x
