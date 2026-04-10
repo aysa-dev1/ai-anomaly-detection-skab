@@ -30,3 +30,6 @@ dist/
 # Test & lint caches
 .pytest_cache/
 .ruff_cache/
+
+# Local status notes
+STATUS.md
