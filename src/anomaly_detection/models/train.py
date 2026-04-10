@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import joblib
+import numpy as np
 import pandas as pd
 
 from anomaly_detection.data.split import time_series_split
@@ -56,7 +57,19 @@ def train_baseline_on_dataset(
         x_train = build_feature_matrix(train_df, feature_cols)
         x_test = build_feature_matrix(test_df, feature_cols)
 
-        model = build_isolation_forest(cfg)
+        contamination = cfg.contamination
+        if contamination == "from_data":
+            # Use train anomaly rate to calibrate threshold
+            rate = float(np.asarray(train_df[label_col]).mean())
+            contamination = float(np.clip(rate, 1e-4, 0.5))
+
+        model = build_isolation_forest(
+            IsolationForestConfig(
+                n_estimators=cfg.n_estimators,
+                contamination=contamination,
+                random_state=cfg.random_state,
+            )
+        )
         model.fit(x_train)
 
         raw_pred = model.predict(x_test)

@@ -29,6 +29,7 @@ End-to-end ML lifecycle for sensor anomaly detection using the SKAB dataset, wit
 **Configuration**
 - Dataset: `configs/dataset.yaml`
 - Training: `configs/train.yaml`
+- `contamination` can be `auto`, a float, or `from_data` (use train anomaly rate)
 - Predict/Monitoring configs are placeholders: `configs/predict.yaml`, `configs/monitoring.yaml`
 
 **Scripts**
