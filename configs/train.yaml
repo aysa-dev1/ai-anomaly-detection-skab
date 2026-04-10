@@ -10,7 +10,7 @@ training:
 model:
   name: isolation_forest
   n_estimators: 200
-  contamination: auto
+  contamination: from_data
   random_state: 42
 
 logging:
