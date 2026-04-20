@@ -12,7 +12,11 @@ import pandas as pd
 from anomaly_detection.data.split import time_series_split
 from anomaly_detection.features.build_features import build_feature_matrix, select_feature_columns
 from anomaly_detection.models.baseline import IsolationForestConfig, build_isolation_forest
-from anomaly_detection.models.evaluate import compute_metrics, isolation_forest_pred_to_anomaly
+from anomaly_detection.models.evaluate import (
+    aggregate_metrics,
+    compute_metrics,
+    isolation_forest_pred_to_anomaly,
+)
 from anomaly_detection.utils.config import load_train_config
 from anomaly_detection.utils.logging import get_logger
 from anomaly_detection.utils.paths import find_repo_root
@@ -42,7 +46,7 @@ def train_baseline_on_dataset(
         raise FileNotFoundError(f"No prepared CSVs found in {processed_dir}")
 
     per_file: dict[str, dict] = {}
-    all_prec, all_rec, all_f1, total_support = 0.0, 0.0, 0.0, 0
+    file_metrics = []
 
     # train on each file, evaluate, and store the "last" Model
     # tbd: clean global training
@@ -77,21 +81,11 @@ def train_baseline_on_dataset(
         y_true = test_df[label_col].to_numpy()
 
         m = compute_metrics(y_true=y_true, y_pred=y_pred)
+        file_metrics.append(m)
 
         per_file[p.name] = m.to_dict()
 
-        all_prec += m.precision * m.support
-        all_rec += m.recall * m.support
-        all_f1 += m.f1 * m.support
-        total_support += m.support
-
-    # support-weighted aggregate
-    agg = {
-        "precision": (all_prec / total_support) if total_support else 0.0,
-        "recall": (all_rec / total_support) if total_support else 0.0,
-        "f1": (all_f1 / total_support) if total_support else 0.0,
-        "support": total_support,
-    }
+    agg = aggregate_metrics(file_metrics).to_dict()
 
     metrics = {
         "model": "IsolationForest",
