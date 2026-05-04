@@ -35,6 +35,7 @@ def train_baseline_on_dataset(
     label_col: str,
     train_ratio: float = 0.7,
     cfg: IsolationForestConfig | None = None,
+    metadata_cols: list[str] | None = None,
 ) -> dict:
     cfg = cfg or IsolationForestConfig()
 
@@ -57,7 +58,7 @@ def train_baseline_on_dataset(
 
         train_df, test_df = time_series_split(df, train_ratio=train_ratio)
 
-        feature_cols = select_feature_columns(df, timestamp_col=timestamp_col, label_col=label_col)
+        feature_cols = select_feature_columns(df, timestamp_col=timestamp_col, label_col=label_col, metadata_cols=metadata_cols)
         x_train = build_feature_matrix(train_df, feature_cols)
         x_test = build_feature_matrix(test_df, feature_cols)
 
@@ -143,6 +144,8 @@ def train_from_config(config_path: str | Path) -> dict[str, Any]:
         random_state=int(model_cfg.get("random_state", seed)),
     )
 
+    metadata_cols = training_cfg.get("metadata_cols", [])
+
     metrics = train_baseline_on_dataset(
         processed_dir=processed_dir,
         artifacts_models_dir=artifacts_models_dir,
@@ -151,6 +154,7 @@ def train_from_config(config_path: str | Path) -> dict[str, Any]:
         label_col=training_cfg["label_col"],
         train_ratio=float(training_cfg.get("train_ratio", 0.7)),
         cfg=model,
+        metadata_cols=metadata_cols,
     )
 
     logger.info("Training completed. Aggregate metrics: %s", metrics["aggregate"])
