@@ -4,6 +4,7 @@ training:
   artifacts_metrics_dir: artifacts/metrics
   timestamp_col: timestamp
   label_col: anomaly
+  metadata_cols: ["changepoint"]
   train_ratio: 0.7
   seed: 42
 

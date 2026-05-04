@@ -15,9 +15,22 @@ def test_select_feature_columns_excludes_timestamp_and_label():
             "label": [0, 0, 1],
         }
     )
-    cols = select_feature_columns(df, timestamp_col="ts", label_col="label")
+    cols = select_feature_columns(df, timestamp_col="ts", label_col="label", metadata_cols=[])
     assert "ts" not in cols
     assert "label" not in cols
+    assert "sensor_1" in cols
+
+def test_select_feature_columns_excludes_metadata_cols():
+    df = pd.DataFrame({
+        "ts": pd.date_range("2020-01-01", periods=3),
+        "sensor_1": [1.0, 2.0, 3.0],
+        "label": [0, 0, 1],
+        "changepoint": [0, 0, 1],
+    })
+
+    cols = select_feature_columns(df, timestamp_col="ts", label_col="label", metadata_cols=["changepoint"])
+
+    assert "changepoint" not in cols
     assert "sensor_1" in cols
 
 
@@ -37,3 +50,4 @@ def test_build_feature_matrix_raises_if_no_numeric():
     df = pd.DataFrame({"status": ["ok", "ok"]})
     with pytest.raises(ValueError, match="No numeric feature columns"):
         build_feature_matrix(df, feature_cols=["status"])
+
