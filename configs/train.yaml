@@ -16,3 +16,6 @@ model:
 
 logging:
   level: INFO
+
+features:
+  rolling_window: 20

@@ -4,6 +4,7 @@ import pytest
 from anomaly_detection.features.build_features import (
     build_feature_matrix,
     select_feature_columns,
+    build_engineered_features,
 )
 
 
@@ -51,3 +52,26 @@ def test_build_feature_matrix_raises_if_no_numeric():
     with pytest.raises(ValueError, match="No numeric feature columns"):
         build_feature_matrix(df, feature_cols=["status"])
 
+def test_build_engineered_features_adds_expected_columns():
+    df = pd.DataFrame({"sensor_1": [1.0, 2.0, 3.0, 4.0, 5.0]})
+    
+    result = build_engineered_features(df, feature_cols=["sensor_1"], rolling_window=3)
+
+    assert "sensor_1_roll_mean" in result.columns
+    assert "sensor_1_roll_std" in result.columns
+    assert "sensor_1_diff" in result.columns
+    assert "sensor_1" in result.columns
+
+def test_build_engineered_features_no_nans():
+    df = pd.DataFrame({"sensor_1": [1.0, 2.0, 3.0, 4.0, 5.0]})
+    
+    result = build_engineered_features(df, feature_cols=["sensor_1"], rolling_window=3)
+
+    assert not result.isnull().any().any()
+
+def test_build_engineered_features_preserves_row_count():
+    df = pd.DataFrame({"sensor_1": [1.0, 2.0, 3.0, 4.0, 5.0]})
+
+    result = build_engineered_features(df, feature_cols=["sensor_1"], rolling_window=3)
+
+    assert len(result) == len(df)

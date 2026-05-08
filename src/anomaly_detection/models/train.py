@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from anomaly_detection.data.split import time_series_split
-from anomaly_detection.features.build_features import build_feature_matrix, select_feature_columns
+from anomaly_detection.features.build_features import build_feature_matrix, select_feature_columns, build_engineered_features
 from anomaly_detection.models.baseline import IsolationForestConfig, build_isolation_forest
 from anomaly_detection.models.evaluate import (
     aggregate_metrics,
@@ -36,6 +36,7 @@ def train_baseline_on_dataset(
     train_ratio: float = 0.7,
     cfg: IsolationForestConfig | None = None,
     metadata_cols: list[str] | None = None,
+    rolling_window: int = 20,
 ) -> dict:
     cfg = cfg or IsolationForestConfig()
 
@@ -59,8 +60,15 @@ def train_baseline_on_dataset(
         train_df, test_df = time_series_split(df, train_ratio=train_ratio)
 
         feature_cols = select_feature_columns(df, timestamp_col=timestamp_col, label_col=label_col, metadata_cols=metadata_cols)
-        x_train = build_feature_matrix(train_df, feature_cols)
-        x_test = build_feature_matrix(test_df, feature_cols)
+
+        train_engineered = build_engineered_features(train_df, feature_cols, rolling_window)
+        test_engineered = build_engineered_features(test_df, feature_cols, rolling_window)
+
+        all_feature_cols = [c for c in train_engineered.columns 
+                            if c not in {timestamp_col, label_col, *(metadata_cols or [])}]
+        
+        x_train = build_feature_matrix(train_engineered, all_feature_cols)
+        x_test = build_feature_matrix(test_engineered, all_feature_cols)
 
         contamination = cfg.contamination
         if contamination == "from_data":
@@ -123,6 +131,7 @@ def train_from_config(config_path: str | Path) -> dict[str, Any]:
     training_cfg = cfg["training"]
     model_cfg = cfg["model"]
     logging_cfg = cfg.get("logging", {})
+    features_cfg = cfg.get("features", {})
 
     logger = get_logger(__name__, level=logging_cfg.get("level", "INFO"))
 
@@ -145,6 +154,7 @@ def train_from_config(config_path: str | Path) -> dict[str, Any]:
     )
 
     metadata_cols = training_cfg.get("metadata_cols", [])
+    rolling_window = features_cfg.get("rolling_window", 20)
 
     metrics = train_baseline_on_dataset(
         processed_dir=processed_dir,
@@ -155,6 +165,7 @@ def train_from_config(config_path: str | Path) -> dict[str, Any]:
         train_ratio=float(training_cfg.get("train_ratio", 0.7)),
         cfg=model,
         metadata_cols=metadata_cols,
+        rolling_window=rolling_window,
     )
 
     logger.info("Training completed. Aggregate metrics: %s", metrics["aggregate"])
