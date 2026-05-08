@@ -14,7 +14,9 @@ data/interim/
 data/processed/
 
 # Artifacts
-artifacts/models/
+# binary, too large to track
+artifacts/models/ 
+# artifacts/metrics and artifacts/reports/ are intentionally tracked (small, diffable)
 
 # Notebooks
 .ipynb_checkpoints/

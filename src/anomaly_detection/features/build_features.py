@@ -12,6 +12,17 @@ def select_feature_columns(df: pd.DataFrame,
     feature_cols = [c for c in df.columns if c not in drop]
     return feature_cols
 
+def build_engineered_features(df: pd.DataFrame, feature_cols: list[str], rolling_window: int):
+    df_engineered = df.copy()
+
+    for col in feature_cols:
+        df_engineered[f"{col}_roll_mean"] = df_engineered[col].rolling(window=rolling_window, min_periods=1).mean()
+
+        df_engineered[f"{col}_roll_std"] = df_engineered[col].rolling(window=rolling_window, min_periods=1).std().fillna(0)
+
+        df_engineered[f"{col}_diff"] = df_engineered[col].diff().fillna(0)
+
+    return df_engineered
 
 def build_feature_matrix(df: pd.DataFrame, feature_cols: list[str], expected_features: list[str] | None = None,) -> pd.DataFrame:
     """only numeric feature columns needed"""
