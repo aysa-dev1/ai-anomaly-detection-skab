@@ -39,6 +39,15 @@ End-to-end ML lifecycle for sensor anomaly detection using the SKAB dataset, wit
 - `scripts/run_predict.sh` (placeholder)
 - `scripts/run_monitoring.sh` (placeholder)
 
+**Training Approach**
+Training is per-file: a separate Isolation Forest is fitted on the first 70% of each
+experiment file and evaluated on the remaining 30%. Global training (one model across
+all files) was evaluated but produced significantly lower F1 (0.355 vs 0.665). The
+root cause is that anomaly patterns in SKAB are context-specific per experiment — a
+global model loses the local calibration needed to detect them reliably. If global
+training is revisited, per-file feature normalisation before concatenation would be
+the next step to try.
+
 **Project Layout**
 - `src/anomaly_detection`: core package
 - `data/`: raw, processed, interim

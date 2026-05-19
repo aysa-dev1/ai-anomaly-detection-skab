@@ -49,9 +49,6 @@ def train_baseline_on_dataset(
 
     per_file: dict[str, dict] = {}
     file_metrics = []
-
-    # train on each file, evaluate, and store the "last" Model
-    # tbd: clean global training
     model = None
 
     for p in files:
@@ -64,15 +61,14 @@ def train_baseline_on_dataset(
         train_engineered = build_engineered_features(train_df, feature_cols, rolling_window)
         test_engineered = build_engineered_features(test_df, feature_cols, rolling_window)
 
-        all_feature_cols = [c for c in train_engineered.columns 
+        all_feature_cols = [c for c in train_engineered.columns
                             if c not in {timestamp_col, label_col, *(metadata_cols or [])}]
-        
+
         x_train = build_feature_matrix(train_engineered, all_feature_cols)
         x_test = build_feature_matrix(test_engineered, all_feature_cols)
 
         contamination = cfg.contamination
         if contamination == "from_data":
-            # Use train anomaly rate to calibrate threshold
             rate = float(np.asarray(train_df[label_col]).mean())
             contamination = float(np.clip(rate, 1e-4, 0.5))
 
@@ -111,10 +107,8 @@ def train_baseline_on_dataset(
     metrics_path = artifacts_metrics_dir / "baseline_isolation_forest.json"
     metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
 
-    # Save last trained model (minimal approach)
-    if model is not None:
-        model_path = artifacts_models_dir / "isolation_forest.joblib"
-        joblib.dump(model, model_path)
+    model_path = artifacts_models_dir / "isolation_forest.joblib"
+    joblib.dump(model, model_path)
 
     return metrics
 
