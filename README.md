@@ -55,3 +55,6 @@ the next step to try.
 - `artifacts/`: models, metrics, reports
 - `notebooks/`: analysis
 - `tests/`: tests
+
+
+***Development notes*** Development suported by Claude Code (Anthropic)
